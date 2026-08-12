@@ -9,8 +9,11 @@ export function Nav({ canEdit }: { canEdit: boolean }) {
           FamilyTree
         </Link>
         <nav className="flex items-center gap-6 text-sm font-medium">
+          <Link href="/" className="hover:text-accent">
+            L&apos;arbre
+          </Link>
           <Link href="/people" className="hover:text-accent">
-            Les membres
+            Index A–Z
           </Link>
           {canEdit && (
             <Link href="/people/new" className="hover:text-accent">

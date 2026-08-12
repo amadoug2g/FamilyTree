@@ -24,8 +24,18 @@ export function getPersonDetail(personId: string) {
     include: {
       photos: { orderBy: [{ isProfile: "desc" }, { createdAt: "desc" }] },
       memories: { orderBy: { createdAt: "desc" } },
-      childOf: { include: { parent: true } },
-      parentOf: { include: { child: true } },
+      // Le niveau supplementaire (parentOf / childOf) permet de deduire la
+      // fratrie et de grouper les enfants par co-parent sans requete a part.
+      childOf: {
+        include: {
+          parent: { include: { parentOf: { include: { child: true } } } },
+        },
+      },
+      parentOf: {
+        include: {
+          child: { include: { childOf: { include: { parent: true } } } },
+        },
+      },
       unionsAsA: { include: { personB: true } },
       unionsAsB: { include: { personA: true } },
     },

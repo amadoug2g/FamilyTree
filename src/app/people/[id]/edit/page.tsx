@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { updatePerson, deletePerson } from "@/app/actions/person-actions";
 import { isEditor } from "@/lib/auth";
 import { PersonForm } from "@/components/PersonForm";
+import { PhotoGallery } from "@/components/PhotoGallery";
 
 export default async function EditPersonPage({
   params,
@@ -12,7 +13,10 @@ export default async function EditPersonPage({
   if (!(await isEditor())) redirect("/login");
 
   const { id } = await params;
-  const person = await prisma.person.findUnique({ where: { id } });
+  const person = await prisma.person.findUnique({
+    where: { id },
+    include: { photos: { orderBy: [{ isProfile: "desc" }, { createdAt: "desc" }] } },
+  });
   if (!person) notFound();
 
   return (
@@ -26,6 +30,10 @@ export default async function EditPersonPage({
           defaultValues={person}
           submitLabel="Enregistrer les modifications"
         />
+      </div>
+
+      <div className="mt-10 border-t border-border pt-6">
+        <PhotoGallery personId={person.id} photos={person.photos} canEdit />
       </div>
 
       <form action={deletePerson.bind(null, id)} className="mt-10 border-t border-border pt-6">
