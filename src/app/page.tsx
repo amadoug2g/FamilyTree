@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { isEditor } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const peopleCount = await prisma.person.count();
+  const [peopleCount, canEdit] = await Promise.all([prisma.person.count(), isEditor()]);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -25,12 +26,14 @@ export default async function Home() {
         >
           Parcourir les membres
         </Link>
-        <Link
-          href="/people/new"
-          className="rounded-full border border-border px-5 py-2.5 text-sm font-medium hover:bg-surface"
-        >
-          Ajouter une personne
-        </Link>
+        {canEdit && (
+          <Link
+            href="/people/new"
+            className="rounded-full border border-border px-5 py-2.5 text-sm font-medium hover:bg-surface"
+          >
+            Ajouter une personne
+          </Link>
+        )}
       </div>
 
       <p className="mt-10 text-sm text-muted">

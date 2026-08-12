@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { savePersonPhoto } from "@/lib/photos";
+import { savePersonPhoto, deletePersonPhotoFile } from "@/lib/photos";
+import { requireEditor } from "@/lib/auth";
 import { optionalStr, parseOptionalDate, str } from "@/lib/validators";
 import type { Gender, ParentType } from "@prisma/client";
 
@@ -16,6 +17,7 @@ function isParentType(value: string): value is ParentType {
 }
 
 export async function createPerson(formData: FormData) {
+  await requireEditor();
   const genderRaw = str(formData.get("gender"));
   const isDeceased = formData.get("isDeceased") === "on";
 
@@ -42,6 +44,7 @@ export async function createPerson(formData: FormData) {
 }
 
 export async function updatePerson(personId: string, formData: FormData) {
+  await requireEditor();
   const genderRaw = str(formData.get("gender"));
   const isDeceased = formData.get("isDeceased") === "on";
 
@@ -70,12 +73,16 @@ export async function updatePerson(personId: string, formData: FormData) {
 }
 
 export async function deletePerson(personId: string) {
+  await requireEditor();
+  const photos = await prisma.photo.findMany({ where: { personId }, select: { url: true } });
   await prisma.person.delete({ where: { id: personId } });
+  await Promise.all(photos.map((p) => deletePersonPhotoFile(p.url)));
   revalidatePath("/people");
   redirect("/people");
 }
 
 export async function addParentage(formData: FormData) {
+  await requireEditor();
   const parentId = str(formData.get("parentId"));
   const childId = str(formData.get("childId"));
   const parentTypeRaw = str(formData.get("parentType"));
@@ -98,11 +105,13 @@ export async function addParentage(formData: FormData) {
 }
 
 export async function removeParentage(parentageId: string, personId: string) {
+  await requireEditor();
   await prisma.parentage.delete({ where: { id: parentageId } });
   revalidatePath(`/people/${personId}`);
 }
 
 export async function addUnion(personId: string, formData: FormData) {
+  await requireEditor();
   const otherId = str(formData.get("spouseId"));
   if (!otherId || otherId === personId) return;
 
@@ -128,6 +137,7 @@ export async function addUnion(personId: string, formData: FormData) {
 }
 
 export async function removeUnion(unionId: string, personId: string) {
+  await requireEditor();
   const union = await prisma.union.findUnique({ where: { id: unionId } });
   await prisma.union.delete({ where: { id: unionId } });
   revalidatePath(`/people/${personId}`);
@@ -138,6 +148,7 @@ export async function removeUnion(unionId: string, personId: string) {
 }
 
 export async function addPhoto(personId: string, formData: FormData) {
+  await requireEditor();
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return;
 
@@ -165,11 +176,14 @@ export async function addPhoto(personId: string, formData: FormData) {
 }
 
 export async function deletePhoto(photoId: string, personId: string) {
-  await prisma.photo.delete({ where: { id: photoId } });
+  await requireEditor();
+  const photo = await prisma.photo.delete({ where: { id: photoId } });
+  await deletePersonPhotoFile(photo.url);
   revalidatePath(`/people/${personId}`);
 }
 
 export async function addMemory(personId: string, formData: FormData) {
+  await requireEditor();
   const authorName = str(formData.get("authorName"));
   const content = str(formData.get("content"));
   if (!authorName || !content) return;
@@ -182,6 +196,7 @@ export async function addMemory(personId: string, formData: FormData) {
 }
 
 export async function deleteMemory(memoryId: string, personId: string) {
+  await requireEditor();
   await prisma.memory.delete({ where: { id: memoryId } });
   revalidatePath(`/people/${personId}`);
 }

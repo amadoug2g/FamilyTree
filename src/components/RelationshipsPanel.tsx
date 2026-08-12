@@ -27,6 +27,7 @@ export function RelationshipsPanel({
   childrenList,
   unions,
   pickerPeople,
+  canEdit,
 }: {
   personId: string;
   parents: Array<{ id: string; parentType: string; parent: PickerPerson }>;
@@ -38,6 +39,7 @@ export function RelationshipsPanel({
     startDateText: string | null;
   }>;
   pickerPeople: PickerPerson[];
+  canEdit: boolean;
 }) {
   return (
     <section className="space-y-8">
@@ -51,20 +53,23 @@ export function RelationshipsPanel({
         }))}
         onRemove={removeParentage}
         personId={personId}
+        canEdit={canEdit}
       >
-        <form action={addParentage} className="flex flex-wrap items-end gap-3">
-          <input type="hidden" name="childId" value={personId} />
-          <PersonSelect name="parentId" people={pickerPeople} label="Choisir un parent" />
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Role</span>
-            <select name="parentType" defaultValue="GUARDIAN">
-              <option value="FATHER">Pere</option>
-              <option value="MOTHER">Mere</option>
-              <option value="GUARDIAN">Tuteur/tutrice</option>
-            </select>
-          </label>
-          <SubmitButton label="Ajouter" />
-        </form>
+        {canEdit && (
+          <form action={addParentage} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="childId" value={personId} />
+            <PersonSelect name="parentId" people={pickerPeople} label="Choisir un parent" />
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium">Role</span>
+              <select name="parentType" defaultValue="GUARDIAN">
+                <option value="FATHER">Pere</option>
+                <option value="MOTHER">Mere</option>
+                <option value="GUARDIAN">Tuteur/tutrice</option>
+              </select>
+            </label>
+            <SubmitButton label="Ajouter" />
+          </form>
+        )}
       </RelationGroup>
 
       <RelationGroup
@@ -77,20 +82,23 @@ export function RelationshipsPanel({
         }))}
         onRemove={removeParentage}
         personId={personId}
+        canEdit={canEdit}
       >
-        <form action={addParentage} className="flex flex-wrap items-end gap-3">
-          <input type="hidden" name="parentId" value={personId} />
-          <PersonSelect name="childId" people={pickerPeople} label="Choisir un enfant" />
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Role de cette personne</span>
-            <select name="parentType" defaultValue="GUARDIAN">
-              <option value="FATHER">Pere</option>
-              <option value="MOTHER">Mere</option>
-              <option value="GUARDIAN">Tuteur/tutrice</option>
-            </select>
-          </label>
-          <SubmitButton label="Ajouter" />
-        </form>
+        {canEdit && (
+          <form action={addParentage} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="parentId" value={personId} />
+            <PersonSelect name="childId" people={pickerPeople} label="Choisir un enfant" />
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium">Role de cette personne</span>
+              <select name="parentType" defaultValue="GUARDIAN">
+                <option value="FATHER">Pere</option>
+                <option value="MOTHER">Mere</option>
+                <option value="GUARDIAN">Tuteur/tutrice</option>
+              </select>
+            </label>
+            <SubmitButton label="Ajouter" />
+          </form>
+        )}
       </RelationGroup>
 
       <div>
@@ -113,33 +121,37 @@ export function RelationshipsPanel({
                     {u.startDateText ? ` - ${u.startDateText}` : ""}
                   </span>
                 </div>
-                <form action={removeUnion.bind(null, u.unionId, personId)}>
-                  <button type="submit" className="text-xs text-muted hover:text-red-600">
-                    Retirer
-                  </button>
-                </form>
+                {canEdit && (
+                  <form action={removeUnion.bind(null, u.unionId, personId)}>
+                    <button type="submit" className="text-xs text-muted hover:text-red-600">
+                      Retirer
+                    </button>
+                  </form>
+                )}
               </li>
             ))}
           </ul>
         )}
 
-        <form action={addUnion.bind(null, personId)} className="mt-4 flex flex-wrap items-end gap-3">
-          <PersonSelect name="spouseId" people={pickerPeople} label="Conjoint(e)" />
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Statut</span>
-            <select name="status" defaultValue="MARRIED">
-              <option value="MARRIED">Marie(e)</option>
-              <option value="DIVORCED">Divorce(e)</option>
-              <option value="WIDOWED">Veuf/veuve</option>
-              <option value="UNKNOWN">Non precise</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Date (approx.)</span>
-            <input name="startDateText" placeholder="ex: vers 1985" className="w-36" />
-          </label>
-          <SubmitButton label="Ajouter" />
-        </form>
+        {canEdit && (
+          <form action={addUnion.bind(null, personId)} className="mt-4 flex flex-wrap items-end gap-3">
+            <PersonSelect name="spouseId" people={pickerPeople} label="Conjoint(e)" />
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium">Statut</span>
+              <select name="status" defaultValue="MARRIED">
+                <option value="MARRIED">Marie(e)</option>
+                <option value="DIVORCED">Divorce(e)</option>
+                <option value="WIDOWED">Veuf/veuve</option>
+                <option value="UNKNOWN">Non precise</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium">Date (approx.)</span>
+              <input name="startDateText" placeholder="ex: vers 1985" className="w-36" />
+            </label>
+            <SubmitButton label="Ajouter" />
+          </form>
+        )}
       </div>
     </section>
   );
@@ -151,6 +163,7 @@ function RelationGroup({
   items,
   onRemove,
   personId,
+  canEdit,
   children,
 }: {
   title: string;
@@ -158,6 +171,7 @@ function RelationGroup({
   items: Array<{ id: string; label: string; linkId: string }>;
   onRemove: (parentageId: string, personId: string) => void | Promise<void>;
   personId: string;
+  canEdit: boolean;
   children?: ReactNode;
 }) {
   return (
@@ -175,11 +189,13 @@ function RelationGroup({
               <Link href={`/people/${item.linkId}`} className="font-medium hover:text-accent">
                 {item.label}
               </Link>
-              <form action={onRemove.bind(null, item.id, personId)}>
-                <button type="submit" className="text-xs text-muted hover:text-red-600">
-                  Retirer
-                </button>
-              </form>
+              {canEdit && (
+                <form action={onRemove.bind(null, item.id, personId)}>
+                  <button type="submit" className="text-xs text-muted hover:text-red-600">
+                    Retirer
+                  </button>
+                </form>
+              )}
             </li>
           ))}
         </ul>

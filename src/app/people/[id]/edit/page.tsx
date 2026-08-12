@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updatePerson, deletePerson } from "@/app/actions/person-actions";
+import { isEditor } from "@/lib/auth";
 import { PersonForm } from "@/components/PersonForm";
 
 export default async function EditPersonPage({
@@ -8,6 +9,8 @@ export default async function EditPersonPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (!(await isEditor())) redirect("/login");
+
   const { id } = await params;
   const person = await prisma.person.findUnique({ where: { id } });
   if (!person) notFound();

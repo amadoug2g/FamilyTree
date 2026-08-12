@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listPeople } from "@/lib/queries";
+import { isEditor } from "@/lib/auth";
 
 function displayName(p: { firstName: string; lastName: string | null }) {
   return [p.firstName, p.lastName].filter(Boolean).join(" ");
@@ -11,18 +12,20 @@ export default async function PeoplePage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const people = await listPeople(q);
+  const [people, canEdit] = await Promise.all([listPeople(q), isEditor()]);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">Les membres de la famille</h1>
-        <Link
-          href="/people/new"
-          className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"
-        >
-          + Ajouter une personne
-        </Link>
+        {canEdit && (
+          <Link
+            href="/people/new"
+            className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"
+          >
+            + Ajouter une personne
+          </Link>
+        )}
       </div>
 
       <form className="mt-6" action="/people">

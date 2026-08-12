@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPersonDetail, listPeopleForPicker } from "@/lib/queries";
+import { isEditor } from "@/lib/auth";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { RelationshipsPanel } from "@/components/RelationshipsPanel";
 import { MemoriesPanel } from "@/components/MemoriesPanel";
@@ -21,9 +22,10 @@ export default async function PersonPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [person, pickerPeople] = await Promise.all([
+  const [person, pickerPeople, canEdit] = await Promise.all([
     getPersonDetail(id),
     listPeopleForPicker(id),
+    isEditor(),
   ]);
 
   if (!person) notFound();
@@ -73,12 +75,14 @@ export default async function PersonPage({
             </p>
           </div>
         </div>
-        <Link
-          href={`/people/${person.id}/edit`}
-          className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-surface"
-        >
-          Modifier
-        </Link>
+        {canEdit && (
+          <Link
+            href={`/people/${person.id}/edit`}
+            className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-surface"
+          >
+            Modifier
+          </Link>
+        )}
       </div>
 
       {person.bio && (
@@ -89,7 +93,7 @@ export default async function PersonPage({
       )}
 
       <div className="mt-10">
-        <PhotoGallery personId={person.id} photos={person.photos} />
+        <PhotoGallery personId={person.id} photos={person.photos} canEdit={canEdit} />
       </div>
 
       <div className="mt-10">
@@ -99,11 +103,12 @@ export default async function PersonPage({
           childrenList={person.parentOf}
           unions={unions}
           pickerPeople={pickerPeople}
+          canEdit={canEdit}
         />
       </div>
 
       <div className="mt-10">
-        <MemoriesPanel personId={person.id} memories={person.memories} />
+        <MemoriesPanel personId={person.id} memories={person.memories} canEdit={canEdit} />
       </div>
     </div>
   );

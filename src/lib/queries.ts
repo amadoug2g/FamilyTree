@@ -5,9 +5,9 @@ export function listPeople(search?: string) {
     where: search
       ? {
           OR: [
-            { firstName: { contains: search } },
-            { lastName: { contains: search } },
-            { clanName: { contains: search } },
+            { firstName: { contains: search, mode: "insensitive" } },
+            { lastName: { contains: search, mode: "insensitive" } },
+            { clanName: { contains: search, mode: "insensitive" } },
           ],
         }
       : undefined,

@@ -4,46 +4,57 @@ Un site pour retracer la genealogie de notre famille : les liens de parente,
 mais aussi l'histoire, la biographie, les photos et les souvenirs de chaque
 personne.
 
-Aujourd'hui c'est un outil pour construire et remplir l'arbre seul. Plus tard,
-il pourra etre ouvert au reste de la famille pour consultation, puis pour
-contribution (ajout de souvenirs, de photos).
+Aujourd'hui la consultation est publique (n'importe qui avec le lien peut
+regarder l'arbre), mais modifier quoi que ce soit (ajouter une personne, un
+lien, une photo, un souvenir) demande un mot de passe partage. C'est une
+protection minimale pour la phase de remplissage ; elle sera remplacee par de
+vrais comptes nominatifs quand le reste de la famille rejoindra le site.
 
 ## Stack technique
 
 - [Next.js](https://nextjs.org) (App Router, TypeScript, Tailwind CSS)
-- [Prisma](https://www.prisma.io) + SQLite (base de donnees dans un simple
-  fichier, `prisma/dev.db`, pas de serveur a gerer)
-- Photos stockees sur disque, dans `public/uploads/`
-
-Pas de systeme de comptes/authentification pour l'instant : c'est un outil a
-usage personnel pendant la phase de remplissage. A ajouter avant d'ouvrir
-l'acces au reste de la famille (voir "Prochaines etapes" plus bas).
+- [Prisma](https://www.prisma.io) + PostgreSQL
+- Photos sur [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) en
+  production, avec repli automatique sur le disque local (`public/uploads/`)
+  quand aucun token Blob n'est configure (pratique en developpement)
 
 ## Demarrer en local
 
-Prerequis : [Node.js](https://nodejs.org) 20 ou plus recent.
+Prerequis : [Node.js](https://nodejs.org) 20+ et une base PostgreSQL
+accessible (locale via Docker/`postgresql`, ou distante).
 
 ```bash
 npm install
-npm run db:migrate   # cree la base de donnees SQLite locale
+cp .env.example .env   # puis renseigne DATABASE_URL, AUTH_SECRET, SITE_EDIT_PASSWORD
+npm run db:migrate      # cree les tables
 npm run dev
 ```
 
-Le site est alors disponible sur http://localhost:3000.
+Le site est alors disponible sur http://localhost:3000. La consultation ne
+demande rien ; pour modifier, va sur `/login` avec le mot de passe defini dans
+`SITE_EDIT_PASSWORD`.
 
 ### Donnees d'exemple (optionnel)
-
-Pour voir a quoi ressemble une petite famille deja renseignee (grands-parents,
-parent, union, biographie) :
 
 ```bash
 npm run db:seed
 ```
 
-Ce sont des personnes **fictives**, clairement marquees `[EXEMPLE]` dans leur
-biographie. Supprime-les depuis la fiche de chaque personne (bouton
-"Modifier" puis "Supprimer la fiche") une fois que tu commences a renseigner
-ta vraie famille.
+Personnes **fictives**, marquees `[EXEMPLE]` dans leur biographie — a
+supprimer avant de saisir de vraies donnees.
+
+### Import de la genealogie maternelle
+
+`scripts/import-maternal-simbara-dembele.ts` recree en une fois l'arbre
+transcrit depuis le PDF `GENEALOGIE_SIMBARA_DEMBELE` (branche Hamet Hamady,
+~123 personnes, connexions uniquement, sans biographies) :
+
+```bash
+npm run db:import-maternal
+```
+
+A executer sur une base vide (il ne fait pas de mise a jour, seulement des
+creations).
 
 ## Modele de donnees
 
@@ -65,39 +76,51 @@ Toute la structure vit dans `prisma/schema.prisma` :
 
 ## Fonctionnement actuel
 
-- `/people` : liste et recherche de toutes les personnes
-- `/people/new` : creer une fiche
-- `/people/[id]` : fiche d'une personne (biographie, photos, parents,
-  enfants, conjoint(e)s, souvenirs) avec formulaires pour tout enrichir
-  directement depuis la page
-- `/people/[id]/edit` : modifier ou supprimer une fiche
+- `/people` : liste et recherche de toutes les personnes (public)
+- `/people/[id]` : fiche d'une personne — biographie, photos, parents,
+  enfants, conjoint(e)s, souvenirs (public en lecture)
+- `/people/new`, `/people/[id]/edit`, et tous les formulaires d'ajout/suppression
+  sur une fiche : reserves aux personnes connectees (`/login`)
 
 Les liens de parente et les unions se font en choisissant une personne deja
 existante dans une liste deroulante : cree d'abord les personnes concernees,
 puis relie-les entre elles.
 
-## Prochaines etapes possibles
+## Deployer sur Vercel
 
-Dans l'ordre ou elles deviendront probablement utiles :
+1. Sur [vercel.com](https://vercel.com), depuis le dashboard : onglet
+   **Storage** -> **Create Database** -> choisir un Postgres (ex. Neon) ->
+   le connecter au projet une fois cree (etape 3). Toujours dans **Storage**,
+   creer aussi un **Blob** store et le connecter au meme projet.
+2. **Add New** -> **Project** -> importer le depot GitHub `amadoug2g/FamilyTree`.
+   Vercel detecte Next.js automatiquement.
+3. Dans **Environment Variables** du projet, en plus de `DATABASE_URL` et
+   `BLOB_READ_WRITE_TOKEN` (ajoutees automatiquement si tu as connecte le
+   Postgres et le Blob store a l'etape 1), ajoute :
+   - `AUTH_SECRET` : une valeur aleatoire (ex. genere avec `openssl rand -hex 32`)
+   - `SITE_EDIT_PASSWORD` : le mot de passe pour modifier l'arbre
+4. **Deploy**. Le build execute automatiquement les migrations Prisma sur la
+   base de production (`prisma migrate deploy`, voir `package.json`).
+5. Une fois en ligne, execute une seule fois l'import de la genealogie
+   (en local, avec `DATABASE_URL` pointant vers la base de production) :
+   ```bash
+   DATABASE_URL="<url de production>" npm run db:import-maternal
+   ```
+
+## Prochaines etapes possibles
 
 1. **Visualisation graphique de l'arbre** (aujourd'hui les liens de parente
    existent en base mais s'affichent seulement sous forme de listes sur
    chaque fiche).
-2. **Comptes utilisateurs et droits d'acces** avant d'inviter la famille :
-   au minimum un mot de passe partage ou un lien prive ; a terme, des comptes
-   nominatifs avec droits de lecture pour tous et d'ecriture pour certains.
-3. **Hebergement permanent** : ce projet tourne aujourd'hui en local. Pour le
-   rendre accessible a la famille, il faudra le deployer (par exemple sur un
-   petit serveur ou service cloud) et passer les photos sur un stockage
-   durable (le stockage disque actuel ne convient pas a un hebergement
-   "serverless" comme Vercel, qui ne conserve pas les fichiers uploades).
-4. **Export / sauvegarde** de la base et des photos, pour garantir que la
+2. **Comptes utilisateurs nominatifs** pour remplacer le mot de passe
+   partage quand le reste de la famille rejoindra le site.
+3. **Export / sauvegarde** de la base et des photos, pour garantir que la
    memoire familiale ne depend pas d'un seul service technique.
 
 ## Notes de developpement
 
 ```bash
 npm run lint          # verification du code
-npm run build         # build de production
+npm run build         # build de production (genere le client Prisma, applique les migrations, build Next)
 npm run db:studio     # interface graphique pour explorer la base (Prisma Studio)
 ```
