@@ -1,0 +1,80 @@
+/* Organigramme genealogique classique : boites reliees par des traits,
+   de haut en bas. Technique CSS standard (li en inline-block, connecteurs
+   dessines via ::before/::after), sans bibliotheque de graphe. */
+
+.tree {
+  display: inline-block;
+  text-align: center;
+}
+
+.tree ul {
+  padding-top: 28px;
+  position: relative;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.tree li {
+  display: inline-block;
+  vertical-align: top;
+  list-style: none;
+  position: relative;
+  padding: 28px 14px 0 14px;
+}
+
+.tree li::before,
+.tree li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 28px;
+  border-top: 1px solid var(--border);
+}
+
+.tree li::after {
+  right: auto;
+  left: 50%;
+  border-left: 1px solid var(--border);
+}
+
+.tree li:only-child {
+  padding-top: 0;
+}
+
+.tree li:only-child::before,
+.tree li:only-child::after {
+  display: none;
+}
+
+.tree li:first-child::before,
+.tree li:last-child::after {
+  border: 0 none;
+}
+
+.tree li:last-child::before {
+  border-right: 1px solid var(--border);
+  border-radius: 0 6px 0 0;
+}
+
+.tree li:first-child::after {
+  border-radius: 6px 0 0 0;
+}
+
+/* Tronc reliant un parent a la rangee de ses propres enfants. */
+.tree ul ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 28px;
+  border-left: 1px solid var(--border);
+}
+
+.nodeBox {
+  display: inline-block;
+  white-space: normal;
+  width: 128px;
+}
