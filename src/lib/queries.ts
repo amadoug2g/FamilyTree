@@ -1,0 +1,43 @@
+import { prisma } from "@/lib/prisma";
+
+export function listPeople(search?: string) {
+  return prisma.person.findMany({
+    where: search
+      ? {
+          OR: [
+            { firstName: { contains: search } },
+            { lastName: { contains: search } },
+            { clanName: { contains: search } },
+          ],
+        }
+      : undefined,
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    include: {
+      photos: { where: { isProfile: true }, take: 1 },
+    },
+  });
+}
+
+export function getPersonDetail(personId: string) {
+  return prisma.person.findUnique({
+    where: { id: personId },
+    include: {
+      photos: { orderBy: [{ isProfile: "desc" }, { createdAt: "desc" }] },
+      memories: { orderBy: { createdAt: "desc" } },
+      childOf: { include: { parent: true } },
+      parentOf: { include: { child: true } },
+      unionsAsA: { include: { personB: true } },
+      unionsAsB: { include: { personA: true } },
+    },
+  });
+}
+
+export function listPeopleForPicker(excludeId?: string) {
+  return prisma.person.findMany({
+    where: excludeId ? { id: { not: excludeId } } : undefined,
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    select: { id: true, firstName: true, lastName: true },
+  });
+}
+
+export type PersonDetail = NonNullable<Awaited<ReturnType<typeof getPersonDetail>>>;

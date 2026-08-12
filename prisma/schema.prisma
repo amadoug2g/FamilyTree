@@ -1,0 +1,136 @@
+// Schema de donnees pour FamilyTree
+// Documente les personnes de la famille, leurs liens de parente,
+// leurs biographies, photos et souvenirs partages.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum ParentType {
+  FATHER
+  MOTHER
+  GUARDIAN
+}
+
+enum UnionStatus {
+  MARRIED
+  DIVORCED
+  WIDOWED
+  UNKNOWN
+}
+
+model Person {
+  id            String   @id @default(cuid())
+  firstName     String
+  lastName      String?
+  // Nom du clan / lignage peulh (ex: patronyme, "yettoore")
+  clanName      String?
+  gender        Gender   @default(UNKNOWN)
+
+  birthDate     DateTime?
+  // Date approximative textuelle quand la date exacte est inconnue
+  birthDateText String?
+  birthPlace    String?
+
+  deathDate     DateTime?
+  deathDateText String?
+  deathPlace    String?
+  isDeceased    Boolean  @default(false)
+
+  bio           String?
+  notes         String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  photos        Photo[]
+  memories      Memory[]
+
+  childOf       Parentage[] @relation("ChildToParentage")
+  parentOf      Parentage[] @relation("ParentToParentage")
+
+  unionsAsA     Union[]     @relation("UnionPersonA")
+  unionsAsB     Union[]     @relation("UnionPersonB")
+
+  @@index([lastName, firstName])
+}
+
+// Lien parent -> enfant. Un enfant peut avoir plusieurs parents
+// (pere, mere, tuteur), un parent peut avoir plusieurs enfants.
+model Parentage {
+  id         String     @id @default(cuid())
+  parentId   String
+  childId    String
+  parentType ParentType @default(GUARDIAN)
+
+  parent     Person     @relation("ParentToParentage", fields: [parentId], references: [id], onDelete: Cascade)
+  child      Person     @relation("ChildToParentage", fields: [childId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime   @default(now())
+
+  @@unique([parentId, childId])
+  @@index([childId])
+  @@index([parentId])
+}
+
+// Union (mariage) entre deux personnes. La polygamie etant courante,
+// une personne peut avoir plusieurs Union en tant que personA ou personB.
+model Union {
+  id          String      @id @default(cuid())
+  personAId   String
+  personBId   String
+  status      UnionStatus @default(UNKNOWN)
+  startDate   DateTime?
+  startDateText String?
+  endDate     DateTime?
+  place       String?
+  notes       String?
+
+  personA     Person      @relation("UnionPersonA", fields: [personAId], references: [id], onDelete: Cascade)
+  personB     Person      @relation("UnionPersonB", fields: [personBId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime    @default(now())
+
+  @@unique([personAId, personBId])
+  @@index([personBId])
+}
+
+model Photo {
+  id         String   @id @default(cuid())
+  personId   String
+  url        String
+  caption    String?
+  takenDateText String?
+  isProfile  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  person     Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+}
+
+// Souvenir / anecdote partage a propos d'une personne.
+// Pense pour les contributions familiales futures (pas d'auth pour l'instant,
+// donc l'auteur est un simple champ texte).
+model Memory {
+  id         String   @id @default(cuid())
+  personId   String
+  authorName String
+  content    String
+  createdAt  DateTime @default(now())
+
+  person     Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+}
